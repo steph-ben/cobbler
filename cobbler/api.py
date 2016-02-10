@@ -36,6 +36,7 @@ from cobbler import action_reposync
 from cobbler import action_status
 from cobbler import action_sync
 from cobbler import autoinstall_manager
+from cobbler import autoinstallgen
 from cobbler import clogger
 from cobbler import collection_manager
 from cobbler import item_distro
@@ -151,6 +152,8 @@ class CobblerAPI:
             self.power_mgr = power_manager.PowerManager(self, self._collection_mgr)
             self.logger.debug("API handle initialized")
             self.perms_ok = True
+            self.autoinstallgen = autoinstallgen.AutoInstallationGen(self._collection_mgr)
+
 
     # ==========================================================
 
