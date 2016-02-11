@@ -25,6 +25,7 @@ import os
 import os.path
 import re
 import shutil
+import urllib
 
 import clogger
 import utils
@@ -536,9 +537,13 @@ class BuildIso:
                     reporegex = re.compile("^(\s*repo --name=" + repo_obj.name + " --baseurl=).*", re.MULTILINE)
                     autoinstall_data = reporegex.sub(r"\1" + "file:///mnt/source/repo_mirror/" + repo_obj.name, autoinstall_data)
 
+                # FIXME: dont use hardcoded IP, use real distro repo name
                 # rewrite any split-tree repos, such as in redhat, to use cdrom
-                srcreporegex = re.compile("^(\s*repo --name=\S+ --baseurl=).*/cobbler/ks_mirror/" + distro.name + "/?(.*)", re.MULTILINE)
-                autoinstall_data = srcreporegex.sub(r"\1" + "file:///mnt/source" + r"\2", autoinstall_data)
+                srcreporegex = re.compile("^(\s*repo --name=\S+ --baseurl=).*/cobbler/(ks_mirror|distro_mirror)/" + distro.name + "/?(.*)", re.MULTILINE)
+                autoinstall_data = srcreporegex.sub(r"\1" + "file:///mnt/source" + r"\3", autoinstall_data)                
+                autoinstall_data = autoinstall_data.replace("--baseurl=http://127.0.0.1/cobbler/distro_mirror/" + distro.name, "--baseurl=file:///mnt/source")
+                autoinstall_data = autoinstall_data.replace("--baseurl=http://127.0.0.1/cobbler/distro_mirror/rhel-server-6.7", "--baseurl=file:///mnt/source")
+
 
             autoinstall_name = os.path.join(isolinuxdir, "%s.cfg" % descendant.name)
             autoinstall_file = open(autoinstall_name, "w+")
@@ -565,6 +570,18 @@ class BuildIso:
                                        logger=self.logger, quiet=True)
                 if not ok:
                     utils.die(self.logger, "rsync of repo '" + repo_name + "' failed")
+                    
+            # FIXME: dont use hardcoded IP
+            # copy the yum configuration file to use local repo if available
+            yum_config = os.path.join(isolinuxdir, "..", "repo_mirror", "cobbler-config.repo")
+            urllib.urlretrieve("http://127.0.0.1/cblr/svc/op/yum/system/dev-test-zabbix", yum_config)
+            with open(yum_config) as fd:
+                yum_config_data = fd.read()
+            yum_config_data = yum_config_data.replace("baseurl=http://127.0.0.1/cobbler/ks_mirror/rhel-server-6.7-x86_64", "baseurl=file:///mnt/cdrom")
+            yum_config_data = yum_config_data.replace("baseurl=http://127.0.0.1/cobbler/repo_mirror", "baseurl=file:///mnt/cdrom/repo_mirror")
+            with open(yum_config, 'w') as fd:
+                fd.write(yum_config_data)
+            
 
         # copy distro files last, since they take the most time
         cmd = "rsync -rlptgu --exclude=boot.cat --exclude=TRANS.TBL --exclude=isolinux/ %s/ %s/../" % (filesource, isolinuxdir)
