@@ -93,6 +93,9 @@ def mac_address(mac, for_item=True):
     else:
         mac = mac.lower().strip()
 
+    if mac == "":
+        return mac
+        
     if for_item is True:
         # this value has special meaning for items
         if mac == "random":

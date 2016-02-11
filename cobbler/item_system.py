@@ -355,7 +355,9 @@ class System(item.Item):
         @param: str interface (interface name)
         @returns: True or CX
         """
-        address = validate.mac_address(address)
+        address = validate.mac_address(address, all)
+        if address == "" and utils.input_boolean(self.collection_mgr._settings.allow_empty_macs) is False:
+            raise CX("Empty MAC address is not allowed")
         if address == "random":
             address = utils.get_random_mac(self.collection_mgr.api)
         if address != "" and utils.input_boolean(self.collection_mgr._settings.allow_duplicate_macs) is False:

@@ -37,6 +37,7 @@ DEFAULTS = {
     "allow_duplicate_ips": [0, "bool"],
     "allow_duplicate_macs": [0, "bool"],
     "allow_dynamic_settings": [0, "bool"],
+    "allow_empty_macs": [0, "bool"],
     "always_write_dhcp_entries": [0, "bool"],
     "anamon_enabled": [0, "bool"],
     "auth_token_expiration": [3600, "int"],

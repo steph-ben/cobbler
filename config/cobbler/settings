@@ -18,6 +18,7 @@ allow_duplicate_ips: 0
 # the mac address information of other system records.  In general,
 # this is undesirable.
 allow_duplicate_macs: 0
+allow_empty_macs: 0
 
 # if 1, cobbler will allow settings to be changed dynamically without
 # a restart of the cobblerd daemon. You can only change this variable
