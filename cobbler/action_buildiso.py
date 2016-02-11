@@ -507,9 +507,9 @@ class BuildIso:
             cfg.write(append_line)
 
             if descendant.COLLECTION_TYPE == 'profile':
-                autoinstall_data = self.api.autoinstallgen.generate_autoinstall_for_profile(descendant.name)
+                autoinstall_data = self.api.autoinstallgen.generate_autoinstall_for_profile(descendant.name, standalone=True)
             elif descendant.COLLECTION_TYPE == 'system':
-                autoinstall_data = self.api.autoinstallgen.generate_autoinstall_for_system(descendant.name)
+                autoinstall_data = self.api.autoinstallgen.generate_autoinstall_for_system(descendant.name, standalone=True)
 
             if distro.breed == "redhat":
                 cdregex = re.compile("^\s*url .*\n", re.IGNORECASE | re.MULTILINE)

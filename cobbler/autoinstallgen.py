@@ -228,7 +228,7 @@ class AutoInstallationGen:
 
         return "curl \"%s\" --output /etc/yum.repos.d/cobbler-config.repo\n" % (url)
 
-    def generate_autoinstall_for_system(self, sys_name):
+    def generate_autoinstall_for_system(self, sys_name, standalone=None):
 
         s = self.api.find_system(name=sys_name)
         if s is None:
@@ -243,9 +243,9 @@ class AutoInstallationGen:
             # this is an image parented system, no automatic installation file available
             return "# image based systems do not have automatic installation files"
 
-        return self.generate_autoinstall(profile=p, system=s)
+        return self.generate_autoinstall(profile=p, system=s, standalone=standalone)
 
-    def generate_autoinstall(self, profile=None, system=None):
+    def generate_autoinstall(self, profile=None, system=None, standalone=None):
 
         obj = system
         obj_type = "system"
@@ -268,6 +268,9 @@ class AutoInstallationGen:
         autoinstall_meta = meta["autoinstall_meta"]
         del meta["autoinstall_meta"]
         meta.update(autoinstall_meta)
+        
+        # Add standalone metadata
+        meta['standalone_mode'] = standalone
 
         # add package repositories metadata to autoinstall metavariables
         if distro.breed == "redhat":
@@ -302,7 +305,7 @@ class AutoInstallationGen:
             self.api.logger.warning(error_msg)
             return "# %s" % error_msg
 
-    def generate_autoinstall_for_profile(self, g):
+    def generate_autoinstall_for_profile(self, g, standalone=None):
 
         g = self.api.find_profile(name=g)
         if g is None:
@@ -312,7 +315,7 @@ class AutoInstallationGen:
         if distro is None:
             raise CX(_("profile %(profile)s references missing distro %(distro)s") % {"profile": g.name, "distro": g.distro})
 
-        return self.generate_autoinstall(profile=g)
+        return self.generate_autoinstall(profile=g, standalone=standalone)
 
     def get_last_errors(self):
         """
