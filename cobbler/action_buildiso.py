@@ -471,6 +471,10 @@ class BuildIso:
 
         if airgapped:
             repo_names_to_copy = {}
+            # copy any repos found in profiles or systems to the iso build
+            repodir = os.path.abspath(os.path.join(isolinuxdir, "..", "repo_mirror"))
+            if not os.path.exists(repodir):
+                os.makedirs(repodir)
 
         for descendant in descendants:
             # if a list of profiles was given, skip any others and their systems
@@ -508,8 +512,10 @@ class BuildIso:
 
             if descendant.COLLECTION_TYPE == 'profile':
                 autoinstall_data = self.api.autoinstallgen.generate_autoinstall_for_profile(descendant.name, standalone=True)
+                yum_config_url = "http://127.0.0.1/cblr/svc/op/yum/profile/" + descendant.name
             elif descendant.COLLECTION_TYPE == 'system':
                 autoinstall_data = self.api.autoinstallgen.generate_autoinstall_for_system(descendant.name, standalone=True)
+                yum_config_url = "http://127.0.0.1/cblr/svc/op/yum/system/" + descendant.name
 
             if distro.breed == "redhat":
                 cdregex = re.compile("^\s*url .*\n", re.IGNORECASE | re.MULTILINE)
@@ -536,8 +542,19 @@ class BuildIso:
                     # update the baseurl in autoinstall_data to use the cdrom copy of this repo
                     reporegex = re.compile("^(\s*repo --name=" + repo_obj.name + " --baseurl=).*", re.MULTILINE)
                     autoinstall_data = reporegex.sub(r"\1" + "file:///mnt/source/repo_mirror/" + repo_obj.name, autoinstall_data)
+                    
+                    # copy the yum configuration file to use local repo if available
+                    # FIXME: dont use hardcoded IP
+                    yum_config = os.path.join(isolinuxdir, "..", "repo_mirror", "cobbler-config-%s.repo" % descendant.name)
+                    urllib.urlretrieve(yum_config_url, yum_config)
+                    with open(yum_config) as fd:
+                        yum_config_data = fd.read()
+                    yum_config_data = yum_config_data.replace("baseurl=http://127.0.0.1/cobbler/ks_mirror/rhel-server-6.7-x86_64", "baseurl=file:///mnt/cdrom")
+                    yum_config_data = yum_config_data.replace("baseurl=http://127.0.0.1/cobbler/repo_mirror", "baseurl=file:///mnt/cdrom/repo_mirror")
+                    with open(yum_config, 'w') as fd:
+                        fd.write(yum_config_data)
 
-                # FIXME: dont use hardcoded IP, use real distro repo name
+                # FIXME: dont use hardcoded IP, use real distro repo name (when renammed from the web interface)
                 # rewrite any split-tree repos, such as in redhat, to use cdrom
                 srcreporegex = re.compile("^(\s*repo --name=\S+ --baseurl=).*/cobbler/(ks_mirror|distro_mirror)/" + distro.name + "/?(.*)", re.MULTILINE)
                 autoinstall_data = srcreporegex.sub(r"\1" + "file:///mnt/source" + r"\3", autoinstall_data)                
@@ -569,19 +586,7 @@ class BuildIso:
                 ok = utils.rsync_files(src, dst, "--exclude=TRANS.TBL --exclude=cache/ --no-g",
                                        logger=self.logger, quiet=True)
                 if not ok:
-                    utils.die(self.logger, "rsync of repo '" + repo_name + "' failed")
-                    
-            # FIXME: dont use hardcoded IP
-            # copy the yum configuration file to use local repo if available
-            yum_config = os.path.join(isolinuxdir, "..", "repo_mirror", "cobbler-config.repo")
-            urllib.urlretrieve("http://127.0.0.1/cblr/svc/op/yum/system/dev-test-zabbix", yum_config)
-            with open(yum_config) as fd:
-                yum_config_data = fd.read()
-            yum_config_data = yum_config_data.replace("baseurl=http://127.0.0.1/cobbler/ks_mirror/rhel-server-6.7-x86_64", "baseurl=file:///mnt/cdrom")
-            yum_config_data = yum_config_data.replace("baseurl=http://127.0.0.1/cobbler/repo_mirror", "baseurl=file:///mnt/cdrom/repo_mirror")
-            with open(yum_config, 'w') as fd:
-                fd.write(yum_config_data)
-            
+                    utils.die(self.logger, "rsync of repo '" + repo_name + "' failed")           
 
         # copy distro files last, since they take the most time
         cmd = "rsync -rlptgu --exclude=boot.cat --exclude=TRANS.TBL --exclude=isolinux/ %s/ %s/../" % (filesource, isolinuxdir)
