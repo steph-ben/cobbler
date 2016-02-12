@@ -155,6 +155,12 @@ class Replicate:
                     target = self.remote.get_distro(distro)
                     target_webdir = os.path.join(self.remote_settings["webdir"], "distro_mirror")
                     tail = utils.path_tail(target_webdir, target["kernel"])
+                    
+                    if tail == "":
+                        # Try with old-style name
+                        target_webdir_old = os.path.join(self.remote_settings["webdir"], "ks_mirror")
+                        tail = utils.path_tail(target_webdir_old, target["kernel"])
+                    
                     if tail != "":
                         try:
                             # path_tail(a,b) returns something that looks like
