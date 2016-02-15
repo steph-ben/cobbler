@@ -104,10 +104,14 @@ class Replicate:
             # do not add the system if it is not on the transfer list
             if not rdata["name"] in self.must_include[obj_type]:
                 continue
-
+                
+            # Some fields have changed between versions, add them all
+            if "ks_meta" in rdata:
+                rdata["autoinstall_meta"] = rdata["ks_meta"]
+            
             if ruid in locals:
                 ldata = locals[ruid]
-                if ldata["mtime"] < rdata["mtime"]:
+                if ldata["mtime"] < rdata["mtime"] or self.ignore_timestamp:
 
                     if ldata["name"] != rdata["name"]:
                         self.logger.info("removing %s %s" % (obj_type, ldata["name"]))
@@ -304,7 +308,8 @@ class Replicate:
     # -------------------------------------------------------
 
     def run(self, cobbler_master=None, distro_patterns=None, profile_patterns=None, system_patterns=None, repo_patterns=None, image_patterns=None,
-            mgmtclass_patterns=None, package_patterns=None, file_patterns=None, prune=False, omit_data=False, sync_all=False, use_ssl=False):
+            mgmtclass_patterns=None, package_patterns=None, file_patterns=None, prune=False, omit_data=False, sync_all=False, use_ssl=False,
+            ignore_timestamp=True):
         """
         Get remote profiles and distros and sync them locally
         """
@@ -321,6 +326,7 @@ class Replicate:
         self.prune = prune
         self.sync_all = sync_all
         self.use_ssl = use_ssl
+        self.ignore_timestamp = ignore_timestamp
 
         if self.use_ssl:
             protocol = 'https'
@@ -348,6 +354,7 @@ class Replicate:
         self.logger.info("omit_data           = %s" % self.omit_data)
         self.logger.info("sync_all            = %s" % self.sync_all)
         self.logger.info("use_ssl             = %s" % self.use_ssl)
+        self.logger.info("ignore_timestamp    = %s" % self.ignore_timestamp)
 
         self.logger.info("XMLRPC endpoint: %s" % self.uri)
         self.logger.debug("test ALPHA")
