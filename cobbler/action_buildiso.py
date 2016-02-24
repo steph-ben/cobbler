@@ -532,7 +532,6 @@ class BuildIso:
                         utils.die(self.logger, error_fmt % "does not exist")
                     if not repo_obj.mirror_locally:
                         utils.die(self.logger, error_fmt % "is not configured for local mirroring")
-                    # FIXME: don't hardcode
                     mirrordir = os.path.join(self.settings.webdir, "repo_mirror", repo_obj.name)
                     if not os.path.exists(mirrordir):
                         utils.die(self.logger, error_fmt % "has a missing local mirror directory")
@@ -542,24 +541,30 @@ class BuildIso:
                     # update the baseurl in autoinstall_data to use the cdrom copy of this repo
                     reporegex = re.compile("^(\s*repo --name=" + repo_obj.name + " --baseurl=).*", re.MULTILINE)
                     autoinstall_data = reporegex.sub(r"\1" + "file:///mnt/source/repo_mirror/" + repo_obj.name, autoinstall_data)
-                    
-                    # copy the yum configuration file to use local repo if available
-                    # FIXME: dont use hardcoded IP
-                    yum_config = os.path.join(isolinuxdir, "..", "repo_mirror", "cobbler-config-%s.repo" % descendant.name)
-                    urllib.urlretrieve(yum_config_url, yum_config)
-                    with open(yum_config) as fd:
-                        yum_config_data = fd.read()
-                    yum_config_data = yum_config_data.replace("baseurl=http://127.0.0.1/cobbler/ks_mirror/rhel-server-6.7-x86_64", "baseurl=file:///mnt/cdrom")
-                    yum_config_data = yum_config_data.replace("baseurl=http://127.0.0.1/cobbler/repo_mirror", "baseurl=file:///mnt/cdrom/repo_mirror")
-                    with open(yum_config, 'w') as fd:
-                        fd.write(yum_config_data)
 
-                # FIXME: dont use hardcoded IP, use real distro repo name (when renammed from the web interface)
-                # rewrite any split-tree repos, such as in redhat, to use cdrom
+                # Rewrite any split-tree repos, such as in redhat, to use cdrom
+                # FIXME: use real distro repo name (when renammed from the web interface)
                 srcreporegex = re.compile("^(\s*repo --name=\S+ --baseurl=).*/cobbler/(ks_mirror|distro_mirror)/" + distro.name + "/?(.*)", re.MULTILINE)
-                autoinstall_data = srcreporegex.sub(r"\1" + "file:///mnt/source" + r"\3", autoinstall_data)                
-                autoinstall_data = autoinstall_data.replace("--baseurl=http://127.0.0.1/cobbler/distro_mirror/" + distro.name, "--baseurl=file:///mnt/source")
-                autoinstall_data = autoinstall_data.replace("--baseurl=http://127.0.0.1/cobbler/distro_mirror/rhel-server-6.7", "--baseurl=file:///mnt/source")
+                autoinstall_data = srcreporegex.sub(r"\1" + "file:///mnt/source/" + r"\3", autoinstall_data)
+
+                    
+                # Copy the yum configuration file to use local repo if available
+                yum_config = os.path.join(isolinuxdir, "..", "repo_mirror", "cobbler-config-%s.repo" % descendant.name)
+                urllib.urlretrieve(yum_config_url, yum_config)
+                with open(yum_config) as fd:
+                    yum_config_data = fd.read()
+                
+                # Match: baseurl=http://192.168.20.253/cobbler/repo_mirror/vmware-tools
+                reporegex = re.compile("^(baseurl=)http://(.*)/cobbler/repo_mirror/", re.MULTILINE)
+                yum_config_data = reporegex.sub(r"\1" + "file:///mnt/source/repo_mirror/", yum_config_data)
+                
+                # Match: baseurl=http://192.168.20.253/cobbler/ks_mirror/rhel-server-6.7-x86_64/ResilientStorage
+                self.logger.info("SITRO_NAME=%s" % distro.name)
+                srcreporegex = re.compile("^(baseurl=)http://(.*)/cobbler/(ks_mirror|distro_mirror)/%s" % distro.name, re.MULTILINE)
+                yum_config_data = srcreporegex.sub(r"\1" + "file:///mnt/source", yum_config_data)
+                
+                with open(yum_config, 'w') as fd:
+                    fd.write(yum_config_data)
 
 
             autoinstall_name = os.path.join(isolinuxdir, "%s.cfg" % descendant.name)
