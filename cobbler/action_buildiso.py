@@ -556,12 +556,12 @@ class BuildIso:
                 
                 # Match: baseurl=http://192.168.20.253/cobbler/repo_mirror/vmware-tools
                 reporegex = re.compile("^(baseurl=)http://(.*)/cobbler/repo_mirror/", re.MULTILINE)
-                yum_config_data = reporegex.sub(r"\1" + "file:///mnt/source/repo_mirror/", yum_config_data)
+                yum_config_data = reporegex.sub(r"\1" + "file:///mnt/cdrom/repo_mirror/", yum_config_data)
                 
                 # Match: baseurl=http://192.168.20.253/cobbler/ks_mirror/rhel-server-6.7-x86_64/ResilientStorage
                 self.logger.info("SITRO_NAME=%s" % distro.name)
                 srcreporegex = re.compile("^(baseurl=)http://(.*)/cobbler/(ks_mirror|distro_mirror)/%s" % distro.name, re.MULTILINE)
-                yum_config_data = srcreporegex.sub(r"\1" + "file:///mnt/source", yum_config_data)
+                yum_config_data = srcreporegex.sub(r"\1" + "file:///mnt/cdrom", yum_config_data)
                 
                 with open(yum_config, 'w') as fd:
                     fd.write(yum_config_data)
