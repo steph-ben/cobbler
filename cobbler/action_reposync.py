@@ -597,10 +597,11 @@ class RepoSync:
             config_file.write(line)
 
             config_proxy = None
-            if repo.proxy == '<<inherit>>':
-                config_proxy = self.settings.proxy_url_ext
-            elif repo.proxy != '' and repo.proxy != '<<None>>':
+            self.logger.debug( "--%s--" % self.settings.proxy_url_ext)
+            if repo.proxy != '' and repo.proxy != '<<None>>' and repo.proxy != '<<inherit>>':
                 config_proxy = repo.proxy
+            if repo.proxy == '<<inherit>>' and self.settings.proxy_url_ext != '':
+                config_proxy = self.settings.proxy_url_ext
 
             if config_proxy is not None:
                 config_file.write("proxy=%s\n" % config_proxy)
